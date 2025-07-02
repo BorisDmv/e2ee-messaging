@@ -45,8 +45,14 @@
               :disabled="!myAESKey || !message.trim()"
               aria-label="Send"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 20L21 12L3 4V10L17 12L3 14V20Z" fill="currentColor"/>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M3 20L21 12L3 4V10L17 12L3 14V20Z" fill="currentColor" />
               </svg>
             </button>
           </div>
@@ -275,7 +281,7 @@ html {
   background: rgba(30, 34, 44, 0.7);
   border-radius: 22px;
   box-shadow: 0 8px 32px 0 #0006;
-  padding: 0;
+  padding: 0 15px;
   font-family: 'Segoe UI', Arial, sans-serif;
   display: flex;
   flex-direction: column;
@@ -293,8 +299,22 @@ html {
     max-width: 100vw;
     margin: 0;
     border-radius: 0;
-    padding: 0;
+    padding: 0 15px;
     overflow: hidden;
+  }
+  .join-form {
+    flex: 1 1 0;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 0;
+    margin: 0;
+    padding: 0 18px;
+  }
+  .join-form .input {
+    width: 94%;
   }
 }
 .chat-title {
@@ -311,11 +331,11 @@ html {
   flex-direction: column;
   gap: 18px;
   align-items: stretch;
-  width: 100%;
+  width: 95%;
   margin-top: auto;
 }
 .input {
-  padding: 12px 16px;
+  padding: 12px 12px;
   border: 1.5px solid #23272f;
   border-radius: 10px;
   font-size: 1.08rem;
