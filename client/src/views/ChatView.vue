@@ -39,7 +39,11 @@
               placeholder="Type your message..."
               :disabled="!myAESKey"
             ></textarea>
-            <button @click="sendEncrypted" class="send-btn" :disabled="!myAESKey || !message.trim()">
+            <button
+              @click="sendEncrypted"
+              class="send-btn"
+              :disabled="!myAESKey || !message.trim()"
+            >
               Send
             </button>
           </div>
@@ -76,8 +80,12 @@ async function generateRSAKeys() {
     ['encrypt', 'decrypt'],
   )
 }
+
+// Use import.meta.env for Vite environment variables
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/'
+
 async function connect() {
-  ws.value = new WebSocket('ws://localhost:8080')
+  ws.value = new WebSocket(WS_URL)
 
   ws.value.onopen = async () => {
     myKeyPair = await generateRSAKeys()
@@ -152,7 +160,11 @@ async function connect() {
               data,
             )
             const text = new TextDecoder().decode(decrypted)
-            messages.value.push({ text, own: msg.username === username.value, username: msg.username || 'Peer' })
+            messages.value.push({
+              text,
+              own: msg.username === username.value,
+              username: msg.username || 'Peer',
+            })
           } catch (err) {
             // ignore failed message
           }
@@ -200,7 +212,8 @@ async function sendEncrypted() {
 </script>
 
 <style scoped>
-body, html {
+body,
+html {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -211,7 +224,10 @@ body, html {
 }
 .background-circles {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 0;
   pointer-events: none;
 }
@@ -222,19 +238,25 @@ body, html {
   opacity: 0.5;
 }
 .circle1 {
-  width: 420px; height: 420px;
+  width: 420px;
+  height: 420px;
   background: #42b983;
-  left: -120px; top: 10vh;
+  left: -120px;
+  top: 10vh;
 }
 .circle2 {
-  width: 320px; height: 320px;
+  width: 320px;
+  height: 320px;
   background: #2c3e50;
-  right: -100px; top: 40vh;
+  right: -100px;
+  top: 40vh;
 }
 .circle3 {
-  width: 180px; height: 180px;
+  width: 180px;
+  height: 180px;
   background: #fff;
-  left: 60vw; top: 80vh;
+  left: 60vw;
+  top: 80vh;
   opacity: 0.12;
 }
 #app {
@@ -257,7 +279,7 @@ body, html {
   align-items: center;
   min-height: 540px;
   backdrop-filter: blur(18px) saturate(1.2);
-  border: 1.5px solid rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
   z-index: 2;
 }
 .chat-title {
@@ -283,7 +305,9 @@ body, html {
   border-radius: 10px;
   font-size: 1.08rem;
   outline: none;
-  transition: border 0.2s, box-shadow 0.2s;
+  transition:
+    border 0.2s,
+    box-shadow 0.2s;
   background: #23272f;
   color: #fff;
   box-shadow: 0 1px 2px #0002;
@@ -301,7 +325,9 @@ body, html {
   font-size: 1.15rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 2px 8px #42b98322;
   margin-bottom: 0;
 }
@@ -345,7 +371,7 @@ body, html {
   max-width: 80%;
   word-break: break-word;
   font-size: 1.05rem;
-  background: rgba(66, 185, 131, 0.10);
+  background: rgba(66, 185, 131, 0.1);
   align-self: flex-start;
   display: flex;
   flex-direction: column;
@@ -401,7 +427,9 @@ body, html {
   background: #23272f;
   color: #fff;
   box-shadow: 0 1px 2px #0002;
-  transition: border 0.2s, box-shadow 0.2s;
+  transition:
+    border 0.2s,
+    box-shadow 0.2s;
 }
 .message-input:focus {
   border-color: #42b983;
@@ -416,7 +444,9 @@ body, html {
   font-size: 1.08rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 2px 8px #42b98322;
 }
 .send-btn:hover {
