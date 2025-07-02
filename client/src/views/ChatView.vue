@@ -6,7 +6,7 @@
       <div class="circle circle2"></div>
       <div class="circle circle3"></div>
     </div>
-    <div class="chat-container" ref="chatContainer">
+    <div class="chat-container">
       <h2 class="chat-title">🔒 Secure Chat</h2>
       <transition name="fade">
         <form v-if="!connected" class="join-form" @submit.prevent="connect">
@@ -43,8 +43,11 @@
               @click="sendEncrypted"
               class="send-btn"
               :disabled="!myAESKey || !message.trim()"
+              aria-label="Send"
             >
-              Send
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 20L21 12L3 4V10L17 12L3 14V20Z" fill="currentColor"/>
+              </svg>
             </button>
           </div>
         </div>
@@ -54,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref } from 'vue'
 
 const ws = ref(null)
 const username = ref('')
@@ -67,32 +70,6 @@ const myAESKey = ref(null)
 const messages = ref([])
 let myKeyPair
 let peerPublicKey
-
-const chatContainer = ref(null)
-
-// Mobile keyboard UX fix: scroll chat to bottom and adjust height on resize
-function scrollToBottom() {
-  nextTick(() => {
-    const area = document.querySelector('.messages-area')
-    if (area) area.scrollTop = area.scrollHeight
-  })
-}
-
-function handleResize() {
-  // On mobile, when keyboard opens, window.innerHeight shrinks
-  if (chatContainer.value) {
-    chatContainer.value.style.maxHeight = window.innerHeight + 'px'
-  }
-  scrollToBottom()
-}
-
-onMounted(() => {
-  window.addEventListener('resize', handleResize)
-  handleResize()
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize)
-})
 
 async function generateRSAKeys() {
   return crypto.subtle.generateKey(
@@ -234,7 +211,6 @@ async function sendEncrypted() {
   )
   messages.value.push({ text: message.value, own: true, username: username.value })
   message.value = ''
-  scrollToBottom()
 }
 </script>
 
@@ -299,7 +275,7 @@ html {
   background: rgba(30, 34, 44, 0.7);
   border-radius: 22px;
   box-shadow: 0 8px 32px 0 #0006;
-  padding: 36px 28px 28px 28px;
+  padding: 0;
   font-family: 'Segoe UI', Arial, sans-serif;
   display: flex;
   flex-direction: column;
@@ -308,6 +284,18 @@ html {
   backdrop-filter: blur(18px) saturate(1.2);
   border: 1.5px solid rgba(255, 255, 255, 0.08);
   z-index: 2;
+  overflow: hidden;
+}
+@media (max-width: 600px) {
+  .chat-container {
+    min-height: 100vh;
+    height: 100dvh;
+    max-width: 100vw;
+    margin: 0;
+    border-radius: 0;
+    padding: 0;
+    overflow: hidden;
+  }
 }
 .chat-title {
   text-align: center;
@@ -374,7 +362,7 @@ html {
   min-height: 160px;
   background: rgba(36, 40, 54, 0.85);
   border-radius: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 24px;
   padding: 16px 10px 10px 10px;
   font-size: 1rem;
   color: #e0eafc;
@@ -441,7 +429,7 @@ html {
   gap: 10px;
   width: 100%;
   margin-top: auto;
-  margin-bottom: 0;
+  margin-bottom: 24px;
 }
 .message-input {
   flex: 1;
