@@ -6,7 +6,7 @@
       <div class="circle circle2"></div>
       <div class="circle circle3"></div>
     </div>
-    <div class="chat-container">
+    <div class="chat-container" ref="chatContainer">
       <h2 class="chat-title">🔒 Secure Chat</h2>
       <transition name="fade">
         <form v-if="!connected" class="join-form" @submit.prevent="connect">
@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const ws = ref(null)
 const username = ref('')
@@ -67,6 +67,32 @@ const myAESKey = ref(null)
 const messages = ref([])
 let myKeyPair
 let peerPublicKey
+
+const chatContainer = ref(null)
+
+// Mobile keyboard UX fix: scroll chat to bottom and adjust height on resize
+function scrollToBottom() {
+  nextTick(() => {
+    const area = document.querySelector('.messages-area')
+    if (area) area.scrollTop = area.scrollHeight
+  })
+}
+
+function handleResize() {
+  // On mobile, when keyboard opens, window.innerHeight shrinks
+  if (chatContainer.value) {
+    chatContainer.value.style.maxHeight = window.innerHeight + 'px'
+  }
+  scrollToBottom()
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+  handleResize()
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 async function generateRSAKeys() {
   return crypto.subtle.generateKey(
@@ -208,6 +234,7 @@ async function sendEncrypted() {
   )
   messages.value.push({ text: message.value, own: true, username: username.value })
   message.value = ''
+  scrollToBottom()
 }
 </script>
 
