@@ -98,8 +98,8 @@ function onSubmit() {
   border: 1.5px solid #23272f;
 }
 .join-btn {
-  background: linear-gradient(90deg, #42b983 60%, #eaf6ff 100%);
-  color: #181c24;
+  background: #42b983;
+  color: #fff;
   border: none;
   border-radius: 10px;
   padding: 14px 0;
@@ -111,13 +111,15 @@ function onSubmit() {
     box-shadow 0.2s;
   box-shadow: 0 2px 8px #42b98322;
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
 }
 .dark-mode .join-btn {
-  background: linear-gradient(90deg, #42b983 60%, #2c3e50 100%);
+  background: #42b983;
   color: #fff;
 }
 .join-btn:hover {
-  background: linear-gradient(90deg, #2c3e50 60%, #42b983 100%);
+  background: #2c3e50;
   box-shadow: 0 4px 16px #2c3e5022;
 }
 @media (max-width: 600px) {
@@ -134,6 +136,12 @@ function onSubmit() {
   }
   .join-form .input {
     width: 94%;
+  }
+  .join-btn {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 1.1rem;
   }
 }
 </style>

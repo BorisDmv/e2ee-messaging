@@ -29,6 +29,7 @@
           @submit="connect"
         />
       </transition>
+      <div v-if="!connected && joinErrorMsg" class="join-error-msg">{{ joinErrorMsg }}</div>
       <transition name="fade">
         <ChatRoom
           v-if="connected"
@@ -56,12 +57,15 @@ const password = ref('')
 const message = ref('')
 const connected = ref(false)
 const isLoading = ref(false)
+const joinErrorMsg = ref('')
 
 const myAESKey = ref(null)
 const messages = ref([])
 const messagesList = ref(null)
 let myKeyPair
 let peerPublicKey
+let joinTimeout = null
+const joinTimeoutMs = 10000 // 10 seconds
 
 async function generateRSAKeys() {
   return crypto.subtle.generateKey(
@@ -79,14 +83,49 @@ async function generateRSAKeys() {
 // Use import.meta.env for Vite environment variables
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/'
 
+// Helper to normalize room name (case-insensitive)
+function normalizeRoomName(name) {
+  return typeof name === 'string' ? name.trim().toLowerCase() : ''
+}
+
 async function connect() {
   isLoading.value = true
+  joinErrorMsg.value = ''
   ws.value = new WebSocket(WS_URL)
+
+  // Timeout to prevent infinite loading
+  if (joinTimeout) clearTimeout(joinTimeout)
+  joinTimeout = setTimeout(() => {
+    isLoading.value = false
+    joinErrorMsg.value = 'Connection timed out. Please try again.'
+    if (ws.value && ws.value.readyState === WebSocket.CONNECTING) {
+      ws.value.close()
+    }
+  }, joinTimeoutMs)
 
   ws.value.onopen = async () => {
     myKeyPair = await generateRSAKeys()
-    // Try to join first
-    ws.value.send(JSON.stringify({ type: 'join_room', room: room.value, password: password.value }))
+    ws.value.send(
+      JSON.stringify({
+        type: 'join_room',
+        room: normalizeRoomName(room.value),
+        password: password.value,
+      }),
+    )
+  }
+
+  ws.value.onerror = (e) => {
+    isLoading.value = false
+    joinErrorMsg.value = 'WebSocket error. Please check your connection and try again.'
+    if (joinTimeout) clearTimeout(joinTimeout)
+  }
+
+  ws.value.onclose = (e) => {
+    isLoading.value = false
+    if (!connected.value && !joinErrorMsg.value) {
+      joinErrorMsg.value = 'Connection closed unexpectedly. Please try again.'
+    }
+    if (joinTimeout) clearTimeout(joinTimeout)
   }
 
   ws.value.onmessage = async (event) => {
@@ -99,6 +138,7 @@ async function connect() {
       msg.type === 'room_created'
     ) {
       isLoading.value = false
+      if (joinTimeout) clearTimeout(joinTimeout)
     }
 
     if (msg.type === 'user_joined') {
@@ -189,7 +229,11 @@ async function connect() {
     // If error, try to create the room
     if (msg.type === 'error' && msg.message === 'Invalid room or password') {
       ws.value.send(
-        JSON.stringify({ type: 'create_room', room: room.value, password: password.value }),
+        JSON.stringify({
+          type: 'create_room',
+          room: normalizeRoomName(room.value),
+          password: password.value,
+        }),
       )
       // keep loading until room_created or another error
     }
@@ -361,5 +405,23 @@ async function sendEncrypted() {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+/* Error message for join/create */
+.join-error-msg {
+  color: #e74c3c;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1.5px solid #e74c3c;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin: 18px 0 0 0;
+  text-align: center;
+  font-size: 1.08rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px #e74c3c22;
+}
+.dark-mode .join-error-msg {
+  background: rgba(36, 40, 54, 0.95);
+  color: #ffb4b4;
+  border: 1.5px solid #e74c3c;
 }
 </style>

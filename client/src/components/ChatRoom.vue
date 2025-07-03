@@ -17,6 +17,7 @@
         class="message-input"
         placeholder="Type your message..."
         :disabled="!myAESKey"
+        ref="textareaRef"
       ></textarea>
       <button
         @click="sendEncrypted"
@@ -47,6 +48,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:message', 'sendEncrypted'])
 const messagesList = ref(null)
+const textareaRef = ref(null)
 
 watch(
   () => props.messages.length,
@@ -63,6 +65,10 @@ watch(
 
 function sendEncrypted() {
   emit('sendEncrypted')
+  // Keep focus on textarea after sending (prevents mobile keyboard from closing)
+  nextTick(() => {
+    if (textareaRef.value) textareaRef.value.focus()
+  })
 }
 </script>
 
