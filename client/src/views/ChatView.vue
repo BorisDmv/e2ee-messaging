@@ -17,61 +17,36 @@
       </button>
       <h2 class="chat-title">🔒 Secure Chat</h2>
       <transition name="fade">
-        <form v-if="!connected" class="join-form" @submit.prevent="connect">
-          <input v-model="username" placeholder="Your Name" class="input" />
-          <input v-model="room" placeholder="Room Name" class="input" />
-          <input v-model="password" placeholder="Password" type="password" class="input" />
-          <button class="join-btn" type="submit">Join / Create Room</button>
-        </form>
+        <JoinRoom
+          v-if="!connected"
+          :username="username"
+          :room="room"
+          :password="password"
+          :isLoading="isLoading"
+          @update:username="(val) => (username = val)"
+          @update:room="(val) => (room = val)"
+          @update:password="(val) => (password = val)"
+          @submit="connect"
+        />
       </transition>
       <transition name="fade">
-        <div v-if="connected" class="chat-box">
-          <div class="messages-area">
-            <div v-if="!myAESKey" class="waiting-msg">Waiting for another user to join...</div>
-            <div v-else class="messages-list">
-              <div
-                v-for="(msg, idx) in messages"
-                :key="idx"
-                :class="['msg', msg.own ? 'own' : 'peer']"
-              >
-                <span class="msg-username">{{ msg.own ? 'You' : msg.username }}</span>
-                <span>{{ msg.text }}</span>
-              </div>
-              <div v-if="messages.length === 0" class="empty-msg">No messages yet.</div>
-            </div>
-          </div>
-          <div class="send-area">
-            <textarea
-              v-model="message"
-              class="message-input"
-              placeholder="Type your message..."
-              :disabled="!myAESKey"
-            ></textarea>
-            <button
-              @click="sendEncrypted"
-              class="send-btn"
-              :disabled="!myAESKey || !message.trim()"
-              aria-label="Send"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M3 20L21 12L3 4V10L17 12L3 14V20Z" fill="currentColor" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <ChatRoom
+          v-if="connected"
+          :myAESKey="myAESKey"
+          :messages="messages"
+          :message="message"
+          @update:message="(val) => (message = val)"
+          @sendEncrypted="sendEncrypted"
+        />
       </transition>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
+import JoinRoom from '../components/JoinRoom.vue'
+import ChatRoom from '../components/ChatRoom.vue'
 
 const isDark = ref(false)
 const ws = ref(null)
@@ -80,9 +55,11 @@ const room = ref('')
 const password = ref('')
 const message = ref('')
 const connected = ref(false)
+const isLoading = ref(false)
 
 const myAESKey = ref(null)
 const messages = ref([])
+const messagesList = ref(null)
 let myKeyPair
 let peerPublicKey
 
@@ -103,6 +80,7 @@ async function generateRSAKeys() {
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/'
 
 async function connect() {
+  isLoading.value = true
   ws.value = new WebSocket(WS_URL)
 
   ws.value.onopen = async () => {
@@ -113,6 +91,15 @@ async function connect() {
 
   ws.value.onmessage = async (event) => {
     const msg = JSON.parse(event.data)
+
+    if (
+      msg.type === 'user_joined' ||
+      msg.type === 'public_key' ||
+      msg.type === 'encrypted_message' ||
+      msg.type === 'room_created'
+    ) {
+      isLoading.value = false
+    }
 
     if (msg.type === 'user_joined') {
       const publicKey = await crypto.subtle.exportKey('spki', myKeyPair.publicKey)
@@ -183,6 +170,15 @@ async function connect() {
               own: msg.username === username.value,
               username: msg.username || 'Peer',
             })
+            // Robust scroll-to-bottom: use nextTick and requestAnimationFrame for all browsers/devices
+            nextTick(() => {
+              // Use requestAnimationFrame to ensure DOM is fully rendered before scrolling
+              requestAnimationFrame(() => {
+                if (messagesList.value) {
+                  messagesList.value.scrollTop = messagesList.value.scrollHeight
+                }
+              })
+            })
           } catch (err) {
             // ignore failed message
           }
@@ -195,10 +191,12 @@ async function connect() {
       ws.value.send(
         JSON.stringify({ type: 'create_room', room: room.value, password: password.value }),
       )
+      // keep loading until room_created or another error
     }
 
     // Handle room_created confirmation for first user
     if (msg.type === 'room_created') {
+      connected.value = true
       const publicKey = await crypto.subtle.exportKey('spki', myKeyPair.publicKey)
       ws.value.send(
         JSON.stringify({
@@ -206,7 +204,6 @@ async function connect() {
           key: btoa(String.fromCharCode(...new Uint8Array(publicKey))),
         }),
       )
-      connected.value = true
     }
   }
 }
@@ -225,6 +222,15 @@ async function sendEncrypted() {
     }),
   )
   messages.value.push({ text: message.value, own: true, username: username.value })
+  // Robust scroll-to-bottom after sending own message
+  nextTick(() => {
+    // Use requestAnimationFrame to ensure DOM is fully rendered before scrolling
+    requestAnimationFrame(() => {
+      if (messagesList.value) {
+        messagesList.value.scrollTop = messagesList.value.scrollHeight
+      }
+    })
+  })
   message.value = ''
 }
 </script>
@@ -298,8 +304,6 @@ async function sendEncrypted() {
   }
 }
 
-/* Make chat-container fill viewport height on mobile, minus safe area, and prevent double scroll */
-/* Desktop: restore original height/spacing, mobile: fill viewport */
 .chat-container {
   max-width: 420px;
   margin: 60px auto;
@@ -338,21 +342,8 @@ async function sendEncrypted() {
     overflow: hidden;
     box-sizing: border-box;
   }
-  .join-form {
-    flex: 1 1 0;
-    justify-content: center;
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    min-height: 0;
-    margin: 0;
-    padding: 0 18px;
-  }
-  .join-form .input {
-    width: 94%;
-  }
 }
+
 .chat-title {
   text-align: center;
   margin-bottom: 28px;
@@ -362,197 +353,7 @@ async function sendEncrypted() {
   font-weight: 700;
   text-shadow: 0 2px 8px #0006;
 }
-.join-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  align-items: stretch;
-  width: 95%;
-  margin-top: auto;
-}
-.input {
-  padding: 12px 12px;
-  border: 1.5px solid #23272f;
-  border-radius: 10px;
-  font-size: 1.08rem;
-  outline: none;
-  transition:
-    border 0.2s,
-    box-shadow 0.2s;
-  background: #fff;
-  color: #181c24;
-  box-shadow: 0 1px 2px #0002;
-}
-.input:focus {
-  border-color: #42b983;
-  box-shadow: 0 2px 8px #42b98322;
-}
-.dark-mode .input {
-  background: #23272f;
-  color: #fff;
-  border: 1.5px solid #23272f;
-}
-.join-btn {
-  background: linear-gradient(90deg, #42b983 60%, #eaf6ff 100%);
-  color: #181c24;
-  border: none;
-  border-radius: 10px;
-  padding: 14px 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    background 0.2s,
-    box-shadow 0.2s;
-  box-shadow: 0 2px 8px #42b98322;
-  margin-bottom: 12px;
-}
-.dark-mode .join-btn {
-  background: linear-gradient(90deg, #42b983 60%, #2c3e50 100%);
-  color: #fff;
-}
-.join-btn:hover {
-  background: linear-gradient(90deg, #2c3e50 60%, #42b983 100%);
-  box-shadow: 0 4px 16px #2c3e5022;
-}
-.chat-box {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  width: 95%;
-  height: 100%;
-  flex: 1 1 0;
-}
-.messages-area {
-  min-height: 160px;
-  background: #fff;
-  color: #181c24;
-  border: 1.5px solid #42b983;
-  border-radius: 12px;
-  margin-bottom: 24px;
-  padding: 16px 10px 10px 10px;
-  font-size: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-end;
-  overflow-y: auto;
-  box-shadow: 0 1px 4px #0002;
-  flex: 1 1 0;
-}
-.dark-mode .messages-area {
-  background: rgba(36, 40, 54, 0.85);
-  color: #e0eafc;
-  border: 1.5px solid #23272f;
-}
-.messages-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.msg {
-  padding: 10px 16px 8px 16px;
-  border-radius: 12px;
-  max-width: 80%;
-  word-break: break-word;
-  font-size: 1.05rem;
-  background: #eafcf6;
-  color: #181c24;
-  border: 1.5px solid #42b983;
-  align-self: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  box-shadow: 0 1px 4px #42b98311;
-  position: relative;
-}
-.dark-mode .msg {
-  background: rgba(66, 185, 131, 0.1);
-  color: #e0eafc;
-  border: 1.5px solid #42b983;
-}
-.msg.own {
-  background: #23272f;
-  color: #fff;
-  border: 2px solid #42b983;
-}
-.dark-mode .msg.own {
-  background: rgba(180, 180, 180, 0.18);
-  color: #fff;
-  border: 2px solid #42b983;
-}
-.msg-username {
-  color: #1a7f5a;
-}
-.dark-mode .msg-username {
-  color: #42b983;
-}
-.msg.own .msg-username {
-  color: #fff;
-}
-.empty-msg {
-  color: #aaa;
-  text-align: center;
-  font-size: 1rem;
-  margin-top: 18px;
-}
-.waiting-msg {
-  color: #888;
-  font-size: 1.1rem;
-  text-align: center;
-  width: 100%;
-  padding: 18px 0 0 0;
-}
-.send-area {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  margin-top: auto;
-  margin-bottom: 24px;
-}
-.message-input {
-  flex: 1;
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1.5px solid #42b983;
-  padding: 12px 16px;
-  font-size: 1.08rem;
-  resize: none;
-  background: #fff;
-  color: #181c24;
-  box-shadow: 0 1px 2px #0002;
-  transition:
-    border 0.2s,
-    box-shadow 0.2s;
-}
-.message-input:focus {
-  border-color: #42b983;
-  box-shadow: 0 2px 8px #42b98322;
-}
-.dark-mode .message-input {
-  background: #23272f;
-  color: #fff;
-  border: 1.5px solid #23272f;
-}
-.send-btn {
-  background: #42b983;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0 22px;
-  font-size: 1.08rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    background 0.2s,
-    box-shadow 0.2s;
-  box-shadow: 0 2px 8px #42b98322;
-}
-.send-btn:hover {
-  background: #2c3e50;
-  box-shadow: 0 4px 16px #2c3e5022;
-}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s;
