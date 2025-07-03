@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="[isDark ? 'dark-mode' : 'light-mode', 'app-bg']">
     <!-- Add blurred background circles -->
     <div class="background-circles">
       <div class="circle circle1"></div>
@@ -7,6 +7,14 @@
       <div class="circle circle3"></div>
     </div>
     <div class="chat-container">
+      <button
+        class="mode-toggle"
+        @click="isDark = !isDark"
+        :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+      >
+        <span v-if="isDark">🌙</span>
+        <span v-else>☀️</span>
+      </button>
       <h2 class="chat-title">🔒 Secure Chat</h2>
       <transition name="fade">
         <form v-if="!connected" class="join-form" @submit.prevent="connect">
@@ -65,6 +73,7 @@
 <script setup>
 import { ref } from 'vue'
 
+const isDark = ref(false)
 const ws = ref(null)
 const username = ref('')
 const room = ref('')
@@ -221,64 +230,47 @@ async function sendEncrypted() {
 </script>
 
 <style scoped>
-body,
-html {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(135deg, #181c24 0%, #23272f 100%);
+.app-bg {
   min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-}
-.background-circles {
+  min-width: 100vw;
+  height: 100vh;
+  width: 100vw;
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  margin: 0;
+  padding: 0;
   z-index: 0;
-  pointer-events: none;
+  overflow: hidden;
 }
-.circle {
+
+.light-mode.app-bg {
+  background: linear-gradient(135deg, #f6f8fa 0%, #eaf6ff 100%);
+}
+.dark-mode.app-bg {
+  background: linear-gradient(135deg, #181c24 0%, #23272f 100%);
+}
+
+.mode-toggle {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.5;
+  top: 18px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 1.7rem;
+  cursor: pointer;
+  z-index: 10;
+  color: #181c24;
+  transition: color 0.2s;
 }
-.circle1 {
-  width: 420px;
-  height: 420px;
-  background: #42b983;
-  left: -120px;
-  top: 10vh;
+.dark-mode .mode-toggle {
+  color: #fff;
 }
-.circle2 {
-  width: 320px;
-  height: 320px;
-  background: #2c3e50;
-  right: -100px;
-  top: 40vh;
-}
-.circle3 {
-  width: 180px;
-  height: 180px;
-  background: #fff;
-  left: 60vw;
-  top: 80vh;
-  opacity: 0.12;
-}
-#app {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-}
+
 .chat-container {
   max-width: 420px;
   margin: 60px auto;
-  background: rgba(30, 34, 44, 0.7);
+  background: var(--chat-bg);
   border-radius: 22px;
   box-shadow: 0 8px 32px 0 #0006;
   padding: 0 15px;
@@ -291,6 +283,14 @@ html {
   border: 1.5px solid rgba(255, 255, 255, 0.08);
   z-index: 2;
   overflow: hidden;
+}
+.light-mode .chat-container {
+  --chat-bg: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid #b4b4b4;
+}
+.dark-mode .chat-container {
+  --chat-bg: rgba(30, 34, 44, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
 }
 @media (max-width: 600px) {
   .chat-container {
@@ -343,17 +343,22 @@ html {
   transition:
     border 0.2s,
     box-shadow 0.2s;
-  background: #23272f;
-  color: #fff;
+  background: #fff;
+  color: #181c24;
   box-shadow: 0 1px 2px #0002;
 }
 .input:focus {
   border-color: #42b983;
   box-shadow: 0 2px 8px #42b98322;
 }
-.join-btn {
-  background: linear-gradient(90deg, #42b983 60%, #2c3e50 100%);
+.dark-mode .input {
+  background: #23272f;
   color: #fff;
+  border: 1.5px solid #23272f;
+}
+.join-btn {
+  background: linear-gradient(90deg, #42b983 60%, #eaf6ff 100%);
+  color: #181c24;
   border: none;
   border-radius: 10px;
   padding: 14px 0;
@@ -364,7 +369,11 @@ html {
     background 0.2s,
     box-shadow 0.2s;
   box-shadow: 0 2px 8px #42b98322;
-  margin-bottom: 0;
+  margin-bottom: 12px;
+}
+.dark-mode .join-btn {
+  background: linear-gradient(90deg, #42b983 60%, #2c3e50 100%);
+  color: #fff;
 }
 .join-btn:hover {
   background: linear-gradient(90deg, #2c3e50 60%, #42b983 100%);
@@ -380,12 +389,13 @@ html {
 }
 .messages-area {
   min-height: 160px;
-  background: rgba(36, 40, 54, 0.85);
+  background: #fff;
+  color: #181c24;
+  border: 1.5px solid #42b983;
   border-radius: 12px;
   margin-bottom: 24px;
   padding: 16px 10px 10px 10px;
   font-size: 1rem;
-  color: #e0eafc;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -393,6 +403,11 @@ html {
   overflow-y: auto;
   box-shadow: 0 1px 4px #0002;
   flex: 1 1 0;
+}
+.dark-mode .messages-area {
+  background: rgba(36, 40, 54, 0.85);
+  color: #e0eafc;
+  border: 1.5px solid #23272f;
 }
 .messages-list {
   width: 100%;
@@ -406,30 +421,39 @@ html {
   max-width: 80%;
   word-break: break-word;
   font-size: 1.05rem;
-  background: rgba(66, 185, 131, 0.1);
+  background: #eafcf6;
+  color: #181c24;
+  border: 1.5px solid #42b983;
   align-self: flex-start;
   display: flex;
   flex-direction: column;
   gap: 2px;
   box-shadow: 0 1px 4px #42b98311;
   position: relative;
+}
+.dark-mode .msg {
+  background: rgba(66, 185, 131, 0.1);
   color: #e0eafc;
+  border: 1.5px solid #42b983;
+}
+.msg.own {
+  background: #23272f;
+  color: #fff;
+  border: 2px solid #42b983;
+}
+.dark-mode .msg.own {
+  background: rgba(180, 180, 180, 0.18);
+  color: #fff;
+  border: 2px solid #42b983;
 }
 .msg-username {
-  font-size: 0.92em;
+  color: #1a7f5a;
+}
+.dark-mode .msg-username {
   color: #42b983;
-  font-weight: 600;
-  margin-bottom: 2px;
-  letter-spacing: 0.5px;
 }
 .msg.own .msg-username {
   color: #fff;
-}
-.msg.own {
-  background: rgba(180, 180, 180, 0.18); /* semi-transparent grey */
-  color: #fff;
-  align-self: flex-end;
-  box-shadow: 0 2px 8px #b4b4b422;
 }
 .empty-msg {
   color: #aaa;
@@ -455,12 +479,12 @@ html {
   flex: 1;
   min-height: 44px;
   border-radius: 10px;
-  border: 1.5px solid #23272f;
+  border: 1.5px solid #42b983;
   padding: 12px 16px;
   font-size: 1.08rem;
   resize: none;
-  background: #23272f;
-  color: #fff;
+  background: #fff;
+  color: #181c24;
   box-shadow: 0 1px 2px #0002;
   transition:
     border 0.2s,
@@ -469,6 +493,11 @@ html {
 .message-input:focus {
   border-color: #42b983;
   box-shadow: 0 2px 8px #42b98322;
+}
+.dark-mode .message-input {
+  background: #23272f;
+  color: #fff;
+  border: 1.5px solid #23272f;
 }
 .send-btn {
   background: #42b983;
