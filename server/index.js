@@ -4,6 +4,11 @@ const wss = new WebSocket.Server({ port: 8080 });
 
 const rooms = {};
 
+// Helper to normalize room names (case-insensitive)
+function normalizeRoomName(name) {
+    return typeof name === 'string' ? name.trim().toLowerCase() : '';
+}
+
 // Simple in-memory rate limiting per connection
 const RATE_LIMIT_WINDOW = 3000; // ms
 const RATE_LIMIT_MAX = 8; // max messages per window
@@ -39,18 +44,22 @@ wss.on('connection', (ws) => {
         }
 
         switch (msg.type) {
-            case 'create_room':
-                rooms[msg.room] = { password: msg.password, users: [ws] };
-                ws.room = msg.room;
+
+            case 'create_room': {
+                const normRoom = normalizeRoomName(msg.room);
+                rooms[normRoom] = { password: msg.password, users: [ws] };
+                ws.room = normRoom;
                 // Send confirmation to creator
                 ws.send(JSON.stringify({ type: 'room_created' }));
                 break;
+            }
 
-            case 'join_room':
-                const room = rooms[msg.room];
+            case 'join_room': {
+                const normRoom = normalizeRoomName(msg.room);
+                const room = rooms[normRoom];
                 if (room && room.password === msg.password) {
                     room.users.push(ws);
-                    ws.room = msg.room;
+                    ws.room = normRoom;
                     room.users.forEach(user => {
                         if (user !== ws) {
                             user.send(JSON.stringify({ type: 'user_joined' }));
@@ -60,6 +69,7 @@ wss.on('connection', (ws) => {
                     ws.send(JSON.stringify({ type: 'error', message: 'Invalid room or password' }));
                 }
                 break;
+            }
 
             case 'public_key':
             case 'encrypted_message':
