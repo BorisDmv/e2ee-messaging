@@ -80,6 +80,7 @@ const room = ref('')
 const password = ref('')
 const message = ref('')
 const connected = ref(false)
+connected.value = true
 
 const myAESKey = ref(null)
 const messages = ref([])
@@ -231,9 +232,9 @@ async function sendEncrypted() {
 
 <style scoped>
 .app-bg {
-  min-height: 100vh;
+  min-height: 100dvh;
   min-width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   width: 100vw;
   position: fixed;
   top: 0;
@@ -244,6 +245,15 @@ async function sendEncrypted() {
   overflow: hidden;
 }
 
+@media (max-width: 600px) {
+  .app-bg {
+    min-height: 100dvh;
+    height: 100dvh;
+    width: 100vw;
+    min-width: 100vw;
+  }
+}
+
 .light-mode.app-bg {
   background: linear-gradient(135deg, #f6f8fa 0%, #eaf6ff 100%);
 }
@@ -251,22 +261,46 @@ async function sendEncrypted() {
   background: linear-gradient(135deg, #181c24 0%, #23272f 100%);
 }
 
+/* Theme toggle button: always visible, never overlaps, responsive */
 .mode-toggle {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  background: none;
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  background: rgba(255, 255, 255, 0.7);
   border: none;
   font-size: 1.7rem;
   cursor: pointer;
-  z-index: 10;
+  z-index: 100;
   color: #181c24;
-  transition: color 0.2s;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px #0002;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
 }
 .dark-mode .mode-toggle {
+  background: rgba(36, 40, 54, 0.85);
   color: #fff;
+  box-shadow: 0 2px 8px #0006;
+}
+@media (max-width: 600px) {
+  .mode-toggle {
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+  }
 }
 
+/* Make chat-container fill viewport height on mobile, minus safe area, and prevent double scroll */
+/* Desktop: restore original height/spacing, mobile: fill viewport */
 .chat-container {
   max-width: 420px;
   margin: 60px auto;
@@ -279,6 +313,7 @@ async function sendEncrypted() {
   flex-direction: column;
   align-items: center;
   min-height: 540px;
+  /* Remove height: 100% and max-height for desktop */
   backdrop-filter: blur(18px) saturate(1.2);
   border: 1.5px solid rgba(255, 255, 255, 0.08);
   z-index: 2;
@@ -294,13 +329,15 @@ async function sendEncrypted() {
 }
 @media (max-width: 600px) {
   .chat-container {
-    min-height: 100vh;
+    min-height: 100dvh;
     height: 100dvh;
+    max-height: 100dvh;
     max-width: 100vw;
     margin: 0;
     border-radius: 0;
-    padding: 0 15px;
+    padding: 0 0 0 0;
     overflow: hidden;
+    box-sizing: border-box;
   }
   .join-form {
     flex: 1 1 0;
@@ -383,7 +420,7 @@ async function sendEncrypted() {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  width: 100%;
+  width: 95%;
   height: 100%;
   flex: 1 1 0;
 }
