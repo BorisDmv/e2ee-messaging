@@ -293,6 +293,63 @@ async function sendEncrypted() {
   border: 1.5px solid rgba(255, 255, 255, 0.08);
 }
 @media (max-width: 600px) {
+  html,
+  body,
+  #app,
+  .app-bg {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .chat-container {
+    min-height: 100dvh;
+    height: 100dvh;
+    max-width: 100vw;
+    margin: 0;
+    border-radius: 0;
+    padding: 0 15px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-box {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    flex: 1 1 0;
+    position: relative;
+  }
+  .messages-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100dvh - 170px);
+    margin-bottom: 0;
+    border-radius: 12px 12px 0 0;
+  }
+  .send-area {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100vw;
+    max-width: 100vw;
+    background: var(--chat-bg);
+    z-index: 20;
+    padding: 10px 10px 18px 10px;
+    margin: 0;
+    border-radius: 0 0 18px 18px;
+    box-shadow: 0 -2px 16px #0002;
+  }
+  .message-input {
+    min-height: 44px;
+    max-height: 80px;
+    font-size: 1.08rem;
+  }
+}
+@media (max-width: 600px) {
   .chat-container {
     min-height: 100vh;
     height: 100dvh;
