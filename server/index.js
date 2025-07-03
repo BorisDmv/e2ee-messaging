@@ -1,11 +1,42 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 
+
 const rooms = {};
+
+// Simple in-memory rate limiting per connection
+const RATE_LIMIT_WINDOW = 3000; // ms
+const RATE_LIMIT_MAX = 8; // max messages per window
+
+function rateLimit(ws) {
+    if (!ws._rateLimit) {
+        ws._rateLimit = { count: 0, last: Date.now() };
+    }
+    const now = Date.now();
+    if (now - ws._rateLimit.last > RATE_LIMIT_WINDOW) {
+        ws._rateLimit.count = 0;
+        ws._rateLimit.last = now;
+    }
+    ws._rateLimit.count++;
+    if (ws._rateLimit.count > RATE_LIMIT_MAX) {
+        return false;
+    }
+    return true;
+}
 
 wss.on('connection', (ws) => {
     ws.on('message', (data) => {
-        const msg = JSON.parse(data);
+        if (!rateLimit(ws)) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Rate limit exceeded. Please slow down.' }));
+            return;
+        }
+        let msg;
+        try {
+            msg = JSON.parse(data);
+        } catch (e) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format.' }));
+            return;
+        }
 
         switch (msg.type) {
             case 'create_room':
