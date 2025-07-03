@@ -80,7 +80,6 @@ const room = ref('')
 const password = ref('')
 const message = ref('')
 const connected = ref(false)
-connected.value = true
 
 const myAESKey = ref(null)
 const messages = ref([])
